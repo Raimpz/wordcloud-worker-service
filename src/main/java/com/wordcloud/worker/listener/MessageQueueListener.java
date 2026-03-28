@@ -14,12 +14,8 @@ public class MessageQueueListener {
         this.textProcessingService = textProcessingService;
     }
 
-    @RabbitListener(queues = "text-processing-queue")
+    @RabbitListener(queues = "text-processing-queue", concurrency = "4-8")
     public void receiveMessage(TextMessagePayload payload) {
-        try {
-            textProcessingService.processPayload(payload);
-        } catch (Exception e) {
-            System.err.println("Failed to process message: " + e.getMessage());
-        }
+        textProcessingService.processPayload(payload);
     }
 }

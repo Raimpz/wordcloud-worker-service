@@ -2,11 +2,28 @@ package com.wordcloud.worker.repository;
 
 import com.wordcloud.worker.entity.WordCount;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import java.util.Optional;
 
 @Repository
 public interface WordCountRepository extends JpaRepository<WordCount, Integer> {
-    Optional<WordCount> findByDocumentIdAndWord(String documentId, String word);
+
+    /**
+     * Atomic upsert: inserts a new row or increments the existing count.
+     * Uses ON CONFLICT to avoid race conditions with concurrent consumers.
+     */
+    @Modifying
+    @Query(value = """
+            INSERT INTO word_counts (document_id, word, count)
+            VALUES (:documentId, :word, :count)
+            ON CONFLICT (document_id, word)
+            DO UPDATE SET count = word_counts.count + :count
+            """, nativeQuery = true)
+    void upsertWordCount(
+        @Param("documentId") String documentId,
+        @Param("word") String word,
+        @Param("count") int count
+    );
 }
