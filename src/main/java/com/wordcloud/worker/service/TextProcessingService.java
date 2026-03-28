@@ -1,55 +1,49 @@
 package com.wordcloud.worker.service;
 
 import com.wordcloud.worker.dto.TextMessagePayload;
-import com.wordcloud.worker.entity.WordCount;
-import com.wordcloud.worker.repository.WordCountRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
-import java.util.Optional;
 
 @Service
 public class TextProcessingService {
 
-    private final WordCountRepository wordCountRepository;
+    private static final int MAX_ALLOWED_WORD_LENGTH = 255;
 
-    private final Set<String> STOP_WORDS = Set.of("and", "or", "the", "a", "an", "is", "in", "to", "of", "it");
+    private final WordCountBatchService wordCountBatchService;
 
-    public TextProcessingService(WordCountRepository wordCountRepository) {
-        this.wordCountRepository = wordCountRepository;
+    private final Set<String> IGNORED_COMMON_WORDS = Set.of("and", "or", "the", "a", "an", "is", "in", "to", "of", "it");
+
+    public TextProcessingService(WordCountBatchService wordCountBatchService) {
+        this.wordCountBatchService = wordCountBatchService;
     }
 
     public void processPayload(TextMessagePayload payload) {
         boolean isTextEmpty = payload.getTextChunk() == null || payload.getTextChunk().trim().isEmpty();
 
         if (isTextEmpty) {
+            wordCountBatchService.batchUpsertAndTrack(payload.getDocumentId(), Map.of());
+
             return;
         }
 
-        String[] words = payload.getTextChunk().toLowerCase().split("[^a-zA-Z]+");
+        String[] words = payload.getTextChunk().toLowerCase().split("[^a-zA-Z0-9]+");
+
+        Map<String, Integer> wordCounts = new HashMap<>();
 
         for (String word : words) {
-            boolean shouldSkip = word.isEmpty() || STOP_WORDS.contains(word);
+            boolean shouldSkip = word.isEmpty() || IGNORED_COMMON_WORDS.contains(word) || (word.matches("\\d+"));
 
             if (shouldSkip) {
                 continue;
             }
 
-            Optional<WordCount> existingWordCount = wordCountRepository.findByDocumentIdAndWord(payload.getDocumentId(), word);
-
-            if (existingWordCount.isPresent()) {
-                WordCount wordCount = existingWordCount.get();
-                wordCount.setCount(wordCount.getCount() + 1);
-
-                wordCountRepository.save(wordCount);
-            } else {
-                WordCount newWordCount = new WordCount();
-                newWordCount.setDocumentId(payload.getDocumentId());
-                newWordCount.setWord(word);
-                newWordCount.setCount(1);
-
-                wordCountRepository.save(newWordCount);
-            }
+            String truncatedWord = word.length() > MAX_ALLOWED_WORD_LENGTH ? word.substring(0, MAX_ALLOWED_WORD_LENGTH) : word;
+            wordCounts.merge(truncatedWord, 1, Integer::sum);
         }
+
+        wordCountBatchService.batchUpsertAndTrack(payload.getDocumentId(), wordCounts);
     }
 }
