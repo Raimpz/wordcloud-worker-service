@@ -30,6 +30,16 @@ public class WordCountBatchService {
                 executeBatchUpsert(documentId, currentBatch);
             }
         }
+
+        jdbcTemplate.update("""
+            UPDATE documents
+            SET processed_chunks = processed_chunks + 1,
+                status = CASE
+                    WHEN processed_chunks + 1 >= total_chunks AND total_chunks > 0 THEN 'COMPLETED'
+                    ELSE status
+                END
+            WHERE id = ?
+            """, documentId);
     }
 
     private void executeBatchUpsert(String documentId, List<Map.Entry<String, Integer>> batch) {
