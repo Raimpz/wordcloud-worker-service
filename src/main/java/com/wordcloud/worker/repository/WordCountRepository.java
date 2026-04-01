@@ -10,10 +10,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface WordCountRepository extends JpaRepository<WordCount, Integer> {
 
-    /**
-     * Atomic upsert: inserts a new row or increments the existing count.
-     * Uses ON CONFLICT to avoid race conditions with concurrent consumers.
-     */
     @Modifying
     @Query(value = """
             INSERT INTO word_counts (document_id, word, count)
