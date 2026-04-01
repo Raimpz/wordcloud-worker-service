@@ -10,11 +10,23 @@ import java.util.Set;
 @Service
 public class TextProcessingService {
 
-    private static final int MAX_ALLOWED_WORD_LENGTH = 255;
+    private static final int MAX_ALLOWED_WORD_LENGTH = 50;
 
     private final WordCountBatchService wordCountBatchService;
 
-    private final Set<String> IGNORED_COMMON_WORDS = Set.of("and", "or", "the", "a", "an", "is", "in", "to", "of", "it");
+    private static final Set<String> IGNORED_COMMON_WORDS = Set.of(
+            // English
+            "a", "an", "and", "are", "as", "at", "be", "been", "but", "by",
+            "can", "did", "do", "does", "for", "from", "had", "has", "have",
+            "he", "if", "in", "is", "it", "its", "me", "not", "of", "on",
+            "or", "she", "so", "that", "the", "they", "this", "to", "was",
+            "we", "were", "will", "with", "would", "you",
+            // Estonian
+            "aga", "ei", "et", "ja", "ka", "kes", "kuid", "kui", "kõik",
+            "ma", "mis", "mitte", "nad", "need", "nii", "ning", "ole", "oli",
+            "oma", "või", "sa", "see", "seda", "sest", "siis", "ta", "te",
+            "veel", "väga"
+    );
 
     public TextProcessingService(WordCountBatchService wordCountBatchService) {
         this.wordCountBatchService = wordCountBatchService;
