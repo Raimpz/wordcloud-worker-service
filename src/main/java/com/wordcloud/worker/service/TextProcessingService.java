@@ -46,7 +46,8 @@ public class TextProcessingService {
         Map<String, Integer> wordCounts = new HashMap<>();
 
         for (String word : words) {
-            boolean shouldSkip = word.isEmpty() || IGNORED_COMMON_WORDS.contains(word) || (word.matches("\\d+"));
+            boolean isOnlyNumbers = (word.matches("\\d+"));
+            boolean shouldSkip = word.isEmpty() || word.length() == 1 || IGNORED_COMMON_WORDS.contains(word) || isOnlyNumbers;
 
             if (shouldSkip) {
                 continue;
